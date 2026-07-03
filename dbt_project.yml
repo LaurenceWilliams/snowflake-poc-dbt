@@ -1,0 +1,33 @@
+config-version: 2
+
+name: 'snowflake_poc'
+version: '0.1.0'
+profile: 'snowflake_poc'
+
+require-dbt-version: ">=1.8.0"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+flags:
+  send_anonymous_usage_stats: false
+
+models:
+  snowflake_poc:
+    # The benchmark workload: materialize as a table so we time the full CTAS,
+    # which mirrors the real transformation workload (not just a SELECT).
+    +materialized: table
+
+    # Dialect split: each folder is enabled only for its own engine, so a given
+    # `dbt run --target X` only ever parses/builds that dialect's models. This
+    # lets the SAME model filename live in both folders without a name clash.
+    redshift:
+      +enabled: "{{ target.type == 'redshift'  }}"
+      # Don't let Redshift's result cache mask real compute on repeat runs.
+      +pre-hook: "SET enable_result_cache_for_session TO off"
+    snowflake:
+      +enabled: "{{ target.type == 'snowflake' }}"
+      # Same idea on Snowflake — force real execution every run.
+      +pre-hook: "ALTER SESSION SET USE_CACHED_RESULT = FALSE"

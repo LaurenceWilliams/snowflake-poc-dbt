@@ -1,0 +1,31 @@
+# Self-contained profile for the PoC. Run dbt with `--profiles-dir .`
+# (or `export DBT_PROFILES_DIR=$(pwd)`) so it uses THIS file, not ~/.dbt.
+#
+# threads default to 1 for clean serial timing; the concurrency harness
+# overrides with `--threads N` on the command line.
+snowflake_poc:
+  target: snowflake
+  outputs:
+
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SF_ACCOUNT') }}"
+      user: "{{ env_var('SF_USER') }}"
+      authenticator: "externalbrowser"
+      role: "{{ env_var('SF_ROLE') }}"
+      warehouse: "{{ env_var('SF_WAREHOUSE') }}"
+      database: "{{ env_var('SF_DATABASE') }}"
+      schema: "{{ env_var('SF_SCHEMA', 'poc_bench') }}"
+      threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
+      client_session_keep_alive: false
+
+    redshift_serverless:
+      type: redshift
+      host: "{{ env_var('RS_HOST') }}"
+      port: "{{ env_var('RS_PORT', 5439) | as_number }}"
+      user: "{{ env_var('RS_USER') }}"
+      password: "{{ env_var('RS_PASSWORD') }}"
+      dbname: "{{ env_var('RS_DATABASE') }}"
+      schema: "{{ env_var('RS_SCHEMA', 'poc_bench') }}"
+      threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
+      sslmode: prefer

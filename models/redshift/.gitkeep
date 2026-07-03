@@ -1,0 +1,3 @@
+# Native Redshift-dialect benchmark models go here (copied verbatim from rover-dbt,
+# then neutralized: strip dist/sort/tags/grant post-hooks, repoint ref() -> source()).
+# Enabled only when target.type == 'redshift'.

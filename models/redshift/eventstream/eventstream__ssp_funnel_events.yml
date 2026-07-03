@@ -1,0 +1,40 @@
+version: 2
+
+# Copied from rover-dbt. One change: the model-level
+# dbt_utils.unique_combination_of_columns (provider_id, date_event) test is
+# dropped — this PoC project has no packages.yml / dbt_utils, and adding the
+# package just for one test isn't worth it for a benchmark harness.
+models:
+  - name: eventstream__ssp_funnel_events
+    description: "{{ doc('eventstream__ssp_funnel_events__description') }}"
+    columns:
+      - name: provider_id
+        description: "{{ doc('eventstream__ssp_funnel_events__provider_id') }}"
+        tests:
+          - not_null
+
+      - name: date_event
+        description: "{{ doc('eventstream__ssp_funnel_events__date_event') }}"
+        tests:
+          - not_null
+
+      - name: views_web
+        description: "{{ doc('eventstream__ssp_funnel_events__views_web') }}"
+
+      - name: views_mobile
+        description: "{{ doc('eventstream__ssp_funnel_events__views_mobile') }}"
+
+      - name: shares_web
+        description: "{{ doc('eventstream__ssp_funnel_events__shares_web') }}"
+
+      - name: shares_mobile
+        description: "{{ doc('eventstream__ssp_funnel_events__shares_mobile') }}"
+
+      - name: copied_web
+        description: "{{ doc('eventstream__ssp_funnel_events__copied_web') }}"
+
+      - name: copied_mobile
+        description: "{{ doc('eventstream__ssp_funnel_events__copied_mobile') }}"
+
+      - name: profile_view_web
+        description: "{{ doc('eventstream__ssp_funnel_events__profile_view_web') }}"

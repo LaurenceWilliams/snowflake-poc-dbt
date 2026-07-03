@@ -1,0 +1,37 @@
+version: 2
+
+# Shared across both targets. The roverdb raw tables already exist in BOTH
+# Snowflake and the Redshift serverless cluster, so the same
+# {{ source('roverdb', '<table>') }} call works on each engine — only the
+# database/schema NAMES differ, resolved here off target.type:
+#   redshift  -> serverless.roverdb      (Redshift identifiers are lowercase)
+#   snowflake -> SNOWFLAKE_POC.ROVERDB   (Snowflake identifiers are uppercase)
+sources:
+  - name: roverdb
+    database: "{{ 'reporting' if target.type == 'redshift' else 'ROVER_POC' }}"
+    schema: "{{ 'roverdb' if target.type == 'redshift' else 'ROVERDB' }}"
+    tables:
+      # Upstream of standard_reports__requester_first_stay_by_brand and its two
+      # intermediate view models.
+      - name: stays_stay
+      - name: conversations_conversation
+      - name: service_delivery_servicedelivery
+      - name: imports_importedrecord
+      - name: conversations_request
+      - name: conversations_requestdate
+
+  - name: eventstream
+    database: "{{ 'reporting' if target.type == 'redshift' else 'ROVER_POC' }}"
+    schema: "{{ 'eventstream' if target.type == 'redshift' else 'EVENTSTREAM' }}"
+    tables:
+      # Upstream of shopify__checkout_lndc_attribution (web) and
+      # eventstream__ssp_funnel_events (web + mobile).
+      - name: web
+      - name: mobile
+
+  - name: util
+    database: "{{ 'reporting' if target.type == 'redshift' else 'ROVER_POC' }}"
+    schema: "{{ 'util' if target.type == 'redshift' else 'UTIL' }}"
+    tables:
+      # Upstream of eventstream__ssp_funnel_events.
+      - name: person_opk2id_lookup

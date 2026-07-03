@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# dbt
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# secrets / local env
+.env
+
+# python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# bench outputs (keep the harness, not the run artifacts)
+bench/results_*.json
+
+# SnowConvert AI working dir (evidence kept locally, not committed)
+sc_migration/

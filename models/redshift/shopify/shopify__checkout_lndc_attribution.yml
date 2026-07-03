@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: shopify__checkout_lndc_attribution
+    description: "{{ doc('shopify__checkout_lndc_attribution__description') }}"
+    columns:
+      - name: attribution_timestamp
+        description: "{{ doc('shopify__checkout_lndc_attribution__attribution_timestamp') }}"
+
+      - name: checkout_timestamp
+        description: "{{ doc('shopify__checkout_lndc_attribution__checkout_timestamp') }}"
+        tests:
+          - not_null
+
+      - name: client_current_url
+        description: "{{ doc('shopify__checkout_lndc_attribution__client_current_url') }}"
+        tests:
+          - not_null
+
+      - name: client_referrer
+        description: "{{ doc('shopify__checkout_lndc_attribution__client_referrer') }}"
+
+      - name: distinct_id
+        description: "{{ doc('shopify__checkout_lndc_attribution__distinct_id') }}"
+
+      - name: id
+        description: "{{ doc('shopify__checkout_lndc_attribution__id') }}"
+        tests:
+          - not_null
+          - unique
+
+      - name: utm_campaign
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_campaign') }}"
+        tests:
+          - not_null
+
+      - name: utm_campaign_email_join
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_campaign_email_join') }}"
+        tests:
+          - not_null
+
+      - name: utm_content
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_content') }}"
+        tests:
+          - not_null
+
+      - name: utm_medium
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_medium') }}"
+        tests:
+          - not_null
+
+      - name: utm_source
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_source') }}"
+        tests:
+          - not_null
+
+      - name: utm_term
+        description: "{{ doc('shopify__checkout_lndc_attribution__utm_term') }}"
+        tests:
+          - not_null

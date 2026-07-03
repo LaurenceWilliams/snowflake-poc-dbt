@@ -1,0 +1,17 @@
+[project]
+name = "snowflake-poc-dbt"
+version = "0.1.0"
+description = "Two-target dbt benchmark harness (Snowflake vs Redshift serverless) for the Snowflake PoC — SC-01 object parity + SC-06b query runtime."
+requires-python = ">=3.9,<3.13"
+dependencies = [
+    # Both adapters live in the same env; the active one is chosen per --target.
+    "dbt-core>=1.8,<2.0",
+    "dbt-snowflake>=1.8,<2.0",
+    "dbt-redshift>=1.8,<2.0",
+    # Redshift -> Snowflake SQL transpilation (reused from ../sqlglot_poc.py for SC-06a).
+    "sqlglot>=25",
+]
+
+[tool.uv]
+# This is an application, not a distributable package — don't try to build it.
+package = false

@@ -1,0 +1,6 @@
+# Native Snowflake-dialect benchmark models go here.
+# DERIVE each from its Redshift twin via bin/sqlglot_poc.py (read=redshift,
+# write=snowflake), then hand-fix what sqlglot misses. Never edit independently
+# of the Redshift version — re-derive so the two can't drift.
+# Same filename as the Redshift twin is intentional (matching run_results node id).
+# Enabled only when target.type == 'snowflake'.

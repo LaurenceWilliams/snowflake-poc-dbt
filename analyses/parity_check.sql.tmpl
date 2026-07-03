@@ -1,0 +1,30 @@
+-- ACTIVATE: rename this file to `parity_check.sql` once at least one benchmark
+-- model exists. It ships as `.tmpl` so dbt does not try to resolve the ref()
+-- below (and fail the graph) while the models/ folders are still empty.
+--
+-- SC-01 validation: prove the two engines produced the SAME result for a model,
+-- so the SC-06b timing comparison is actually comparing equivalent queries.
+--
+-- This is an analysis (not a model): `dbt compile --select parity_check` renders
+-- it, then run the compiled SQL on EACH target and compare the output rows.
+-- Row count + per-row checksum catches both replication gaps (SC-01) and any
+-- silent logic drift between the Redshift and Snowflake versions of a model.
+--
+-- Replace `model_a` with each benchmark model name in turn.
+
+{% set model_name = var('parity_model', 'model_a') %}
+
+select
+    count(*)                                      as row_count,
+    -- Order-independent fingerprint of the whole result set.
+    -- On Snowflake: hash(*) is native. On Redshift there is no hash(*), so we
+    -- branch — adjust the column list per model if you need column-level detail.
+    {% if target.type == 'snowflake' %}
+        sum(hash(*))                              as content_checksum
+    {% else %}
+        sum(fnv_hash(md5(cast(to_char(current_timestamp) as varchar) )))  as _placeholder,
+        -- ^ replace with an explicit fnv_hash over the model's real columns, e.g.
+        --   sum(fnv_hash(col_a, fnv_hash(col_b, fnv_hash(col_c)))) as content_checksum
+        count(*)                                  as content_checksum
+    {% endif %}
+from {{ ref(model_name) }}
