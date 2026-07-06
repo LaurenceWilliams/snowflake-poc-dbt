@@ -1,0 +1,8 @@
+packages:
+  - name: dbt_snow_mask
+    package: entechlog/dbt_snow_mask
+    version: 0.2.9
+  - name: dbt_utils
+    package: dbt-labs/dbt_utils
+    version: 1.4.1
+sha1_hash: f37100e393a8ed081383ac0ad01e5588c3835f9a

@@ -1,0 +1,14 @@
+version 2:
+
+models:
+  - name: ddm_sample__test_model
+    description: "A test model for DDM sample"
+    columns:
+      - name: person_id
+      - name: first_name
+      - name: last_name
+      - name: email
+        config:
+          meta:
+            masking_policy: encrypt_pii
+      - name: is_active

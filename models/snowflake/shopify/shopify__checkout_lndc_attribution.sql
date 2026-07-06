@@ -4,8 +4,10 @@
 -- refs repointed to source(). scai changes: CONVERT_TIMEZONE casing, `ESCAPE '\\'`
 -- appended to ilike (emulates Redshift's default backslash escape), trailing
 -- semicolon + SSC-FDM marker + BOM stripped.
--- WATCH ITEM: scai left `metadata_timestamp + 1` (line ~100) unchanged — Snowflake
--- may reject TIMESTAMP + integer at runtime (scai had no column-type catalog).
+-- SC-06a FINDING (confirmed at runtime): scai left `metadata_timestamp + 1`
+-- unchanged, which compiles on Redshift (int = days) but Snowflake REJECTS with
+-- "001044 Invalid argument types for '+': (TIMESTAMP_NTZ, NUMBER)". This is a case
+-- where SnowConvert emitted non-runnable SQL — see the DATEADD fix in the join below.
 
 WITH
 
@@ -98,7 +100,10 @@ eventstream_web AS (
          eventstream_web_limited
   ON checkout.distinct_id = eventstream_web_limited.distinct_id AND
      checkout.checkout_timestamp >= eventstream_web_limited.metadata_timestamp AND
-     checkout.checkout_timestamp < eventstream_web_limited.metadata_timestamp + 1
+     -- SC-06a MANUAL FIX: scai left Redshift's `metadata_timestamp + 1` (add 1 day)
+     -- untranslated; Snowflake rejects TIMESTAMP + NUMBER (error 001044). Rewritten to
+     -- DATEADD(day, 1, ...), which is exactly equivalent (1 calendar day on TIMESTAMP_NTZ).
+     checkout.checkout_timestamp < DATEADD(day, 1, eventstream_web_limited.metadata_timestamp)
 )
 
 SELECT
