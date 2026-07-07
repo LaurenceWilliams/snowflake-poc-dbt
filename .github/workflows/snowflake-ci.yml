@@ -1,0 +1,56 @@
+name: Snowflake connectivity (password CI auth)
+
+# Option 2 from the PoC networking discussion: connect GitHub Actions to
+# Snowflake's PUBLIC endpoint with password auth. No IP allowlist and no VPC
+# networking — unlike private-VPC Redshift, where auth alone can't create a
+# network route.
+#
+# Authenticates as the dedicated svc_github_ci service user (ci_dbt_role).
+# Required repo secrets (Settings > Secrets and variables > Actions > Secrets):
+#   SF_ACCOUNT, SF_WAREHOUSE, SF_PASSWORD
+# The non-sensitive, now-known values (user/role/db/schema) are literals below.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'models/snowflake/test/**'
+      - '.github/workflows/snowflake-ci.yml'
+      - 'profiles.yml'
+
+jobs:
+  dbt-smoke-test:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}
+      # Sensitive / connection-specific — set as repo secrets.
+      SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+      SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+      SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+      # Non-sensitive, now-known values — literals, so there's less to configure.
+      SF_USER: svc_github_ci
+      SF_ROLE: ci_dbt_role
+      SF_DATABASE: github_ci
+      SF_SCHEMA: poc_bench
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt + adapters
+        run: uv sync
+
+      - name: dbt deps
+        run: uv run dbt deps --profiles-dir .
+
+      - name: Create the CI database if it doesn't exist
+        run: uv run dbt run-operation create_ci_database --target snowflake_ci --profiles-dir .
+
+      - name: dbt debug (prove the connection)
+        run: uv run dbt debug --target snowflake_ci --profiles-dir .
+
+      - name: dbt run (smoke-test model in github_ci)
+        run: uv run dbt run --select test__test_model --target snowflake_ci --profiles-dir .
