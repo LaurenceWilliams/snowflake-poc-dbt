@@ -1,0 +1,18 @@
+version 2:
+
+models:
+  - name: ddm_sample__test_model_tagged
+    description: >
+      Tag-based DDM counterpart to ddm_sample__test_model. The email column is
+      only *classified* here (meta.pii_tag: EMAIL) -- it does NOT name a policy.
+      The encrypt_pii policy is bound to the pii_category tag centrally
+      (see setup_pii_tag), so masking propagates through the tag automatically.
+    columns:
+      - name: person_id
+      - name: first_name
+      - name: last_name
+      - name: email
+        config:
+          meta:
+            pii_tag: EMAIL
+      - name: is_active

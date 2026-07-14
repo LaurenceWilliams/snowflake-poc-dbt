@@ -6,12 +6,9 @@ sources, **two engines** — chosen per `--target`:
 - `snowflake` (dbt-snowflake)
 - `redshift_serverless` (dbt-redshift)
 
-Serves two success criteria from `.claude/docs/snowflake-poc-evaluation.md`:
-
-| Criterion | What this project does |
-|---|---|
-| **SC-01** Replicate Redshift objects | `analyses/parity_check.sql` validates row-count + checksum parity between engines (data is already loaded both sides). |
-| **SC-06b** Compare query runtimes | `bench/run_bench.py` (serial) + `bench/run_concurrency.py` (the real bottleneck) measure runtime and test the ≥25%-faster threshold. |
+Addresses several success criteria from `.claude/docs/snowflake-poc-evaluation.md`
+(SC-01, SC-06a, SC-06b, SC-05c). Per-criterion notes and findings live in
+**[EVALUATION.md](EVALUATION.md)**; this README covers how to set up and run the harness.
 
 ## Dialect split
 

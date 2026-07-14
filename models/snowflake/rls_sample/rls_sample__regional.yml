@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: rls_sample__regional
+    description: >
+      Row access policy (RLS) demo. Rows are filtered by the querying role's
+      country entitlements (entitlements__country_access); DATA_PLATFORM sees all
+      rows. The policy is attached to the `country` column by the
+      apply_row_access_policy post-hook on every build.
+    columns:
+      - name: person_id
+      - name: country
+      - name: city
+      - name: revenue
