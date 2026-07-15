@@ -36,6 +36,25 @@ snowflake_poc:
       threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
       client_session_keep_alive: false
 
+    # Option 3: key pair (JWT) auth -- non-interactive like snowflake_ci but WITHOUT
+    # a shared password. Only the PUBLIC key is registered on the user
+    # (ALTER USER ... SET RSA_PUBLIC_KEY, needs USERADMIN); the PRIVATE key stays
+    # local. dbt-snowflake infers key pair auth from private_key_path -- so no
+    # `authenticator` line here. Drop private_key_passphrase if the key is
+    # unencrypted (generated with `openssl pkcs8 ... -nocrypt`).
+    snowflake_keypair:
+      type: snowflake
+      account: "{{ env_var('SF_ACCOUNT') }}"
+      user: "{{ env_var('SF_USER') }}"
+      private_key_path: "{{ env_var('SF_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SF_PRIVATE_KEY_PASSPHRASE') }}"
+      role: "{{ env_var('SF_ROLE') }}"
+      warehouse: "{{ env_var('SF_WAREHOUSE') }}"
+      database: "{{ env_var('SF_DATABASE') }}"
+      schema: "{{ env_var('SF_SCHEMA', 'poc_bench') }}"
+      threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
+      client_session_keep_alive: false
+
     redshift_serverless:
       type: redshift
       host: "{{ env_var('RS_HOST') }}"

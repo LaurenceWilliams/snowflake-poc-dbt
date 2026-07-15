@@ -13,6 +13,7 @@ For how to set up and run the harness, see [`README.md`](README.md).
 | **SC-06a** Convert Redshift SQL / dbt to Snowflake | SnowConvert AI (`scai`) via dbt-compile → convert → re-templatize, with `bin/sqlglot_poc.py` as a fallback transpiler. Full how-to in the README's *Translating with scai* section. |
 | **SC-06b** Compare query runtimes | `bench/run_bench.py` (serial) + `bench/run_concurrency.py` (the real bottleneck) measure runtime and test the ≥25%-faster threshold. |
 | **SC-05c** Data protection policies | Column & tag-based dynamic masking, plus entitlement-driven row access policies (RLS), with metadata queries to verify enforcement. See below. |
+| **SC-05d** OAuth local/Codespaces connection (no password) | Passwordless, role-based dev auth: `externalbrowser` (SSO) for local, key pair for headless/Codespaces. `profiles.yml` targets `snowflake` + `snowflake_keypair`. See below. |
 
 ---
 
@@ -183,3 +184,59 @@ not) — so `setup_row_access_policy` is safe to re-run to push predicate change
 | Tag-based masking | **Core** — done | Tag once, policy auto-propagates — replaces per-column YAML at scale |
 | Row access policies (RLS) | **Core** — done | Regional/team row filtering Redshift can't do well; entitlement-table driven |
 | Projection / aggregation policies | Note only | Out of scope for this PoC |
+
+---
+
+## SC-05d — OAuth local / Codespaces connection (no password)
+
+**Question (from the master doc):** Establish a passwordless, role-based
+connection to Snowflake for development — run dbt models locally and from
+Codespaces without storing a password.
+
+### Passwordless methods available
+
+| Method | dbt config | Interactive? | Local | Codespaces |
+|---|---|---|---|---|
+| **Browser SSO** (OKTA) | `authenticator: externalbrowser` | yes (browser) | ✅ `snowflake` target | ⚠ callback must reach a browser (port-forwarding) |
+| **Key pair (JWT)** | `private_key_path` | no | ✅ `snowflake_keypair` target | ✅ headless |
+| **OAuth token** | `authenticator: oauth` + `token` | depends on IdP | ✅ | ✅ |
+| Password | `password` | no | avoid | avoid |
+
+> Note on "OAuth": the `externalbrowser` authenticator triggers the IdP's
+> browser SSO flow (OAuth or SAML depending on the OKTA integration). The PoC's
+> Snowflake CLI (`snow`) connection is configured for OAuth authorization-code
+> (`OAUTH_AUTHORIZATION_CODE`). For a *pure* token-based OAuth in dbt, use
+> `authenticator: oauth` + `token` instead of `externalbrowser`.
+
+### Local — VERIFIED
+
+The `snowflake` target uses `authenticator: externalbrowser` — browser SSO, **no
+password**. All of this session's local dbt work (masking + RLS models and
+`run-operation`s) authenticated this way: a browser login, then `dbt run` /
+`dbt run-operation` against Snowflake with no secret in the profile.
+
+### Codespaces — approach
+
+`externalbrowser` opens a `http://localhost:<port>` callback for the SSO
+redirect. Locally the browser and callback share a machine, so it just works. In
+a **remote Codespace** the callback port must be reachable by a browser:
+
+- Rely on VS Code's automatic **port forwarding** so the codespace's localhost
+  callback opens in your local browser; **or**
+- Use the **key pair** target (`snowflake_keypair`) — no browser at all, so it
+  sidesteps the callback entirely. Mount the private key as a Codespaces secret.
+  This is the most robust headless dev path.
+
+### Recommendation
+
+- **Local dev:** `externalbrowser` (browser SSO) — already working, no secrets stored.
+- **Codespaces dev:** key pair (private key as a Codespaces secret) as the
+  headless default; `externalbrowser` also works if port-forwarding is set up.
+- **Never** the `password` path for development.
+
+### Related config
+
+- `profiles.yml`: `snowflake` (externalbrowser) · `snowflake_keypair` (key pair).
+- `.env.example`: `SF_PRIVATE_KEY_PATH`, `SF_PRIVATE_KEY_PASSPHRASE`.
+- Key pair setup (generate keys, `ALTER USER … SET RSA_PUBLIC_KEY` needs
+  USERADMIN) is documented in `.env.example`.
