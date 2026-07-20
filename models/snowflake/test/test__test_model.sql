@@ -11,6 +11,7 @@
 ) }}
 
 select
+
     'github-actions'    as ran_from,
     current_user()      as sf_user,
     current_role()      as sf_role,
