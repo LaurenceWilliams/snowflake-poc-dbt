@@ -14,6 +14,7 @@ For how to set up and run the harness, see [`README.md`](README.md).
 | **SC-06b** Compare query runtimes | `bench/run_bench.py` (serial) + `bench/run_concurrency.py` (the real bottleneck) measure runtime and test the ≥25%-faster threshold. |
 | **SC-05c** Data protection policies | Column & tag-based dynamic masking, plus entitlement-driven row access policies (RLS), with metadata queries to verify enforcement. See below. |
 | **SC-05d** OAuth local/Codespaces connection (no password) | Passwordless, role-based dev auth: `externalbrowser` (SSO) for local, key pair for headless/Codespaces. `profiles.yml` targets `snowflake` + `snowflake_keypair`. See below. |
+| **SC-05e** GitHub connection with Snowflake | CI workflow (`.github/workflows/snowflake-ci.yml`) runs a dbt smoke test against Snowflake on every relevant push. Blocked on SRE adding this repo to the Custom-4 runner group. See below. |
 
 ---
 
@@ -240,3 +241,73 @@ a **remote Codespace** the callback port must be reachable by a browser:
 - `.env.example`: `SF_PRIVATE_KEY_PATH`, `SF_PRIVATE_KEY_PASSPHRASE`.
 - Key pair setup (generate keys, `ALTER USER … SET RSA_PUBLIC_KEY` needs
   USERADMIN) is documented in `.env.example`.
+
+---
+
+## SC-05e — GitHub connection with Snowflake
+
+**Question (from the master doc):** Connect GitHub with Snowflake. Run dbt from
+a GitHub Action.
+
+### What was built
+
+`.github/workflows/snowflake-ci.yml` defines a `dbt-smoke-test` job that:
+
+1. Installs dbt + adapters via `uv sync`.
+2. Runs `dbt deps` and `dbt debug` to verify the Snowflake connection.
+3. Runs `dbt run --select test__test_model --target snowflake_ci` as a
+   smoke test against the `github_ci` database (`poc_bench` schema).
+
+The job triggers on `workflow_dispatch` and on pushes that touch
+`models/snowflake/test/**`, `profiles.yml`, or the workflow file itself.
+
+### Authentication and service account
+
+The workflow authenticates as a dedicated service user (`svc_github_ci`) with
+role `ci_dbt_role` using password auth — the only headless option that doesn't
+require a private key mounted as a secret at the GitHub org level. Three repo
+secrets drive the connection: `SF_ACCOUNT`, `SF_WAREHOUSE`, `SF_PASSWORD`.
+Non-sensitive values (user, role, database, schema) are literals in the
+workflow so there is less per-repo secret configuration.
+
+### Network policy
+
+Snowflake rejects connections from IPs not on an allowlist. A network policy
+was created and scoped to `svc_github_ci`:
+
+```sql
+CREATE NETWORK POLICY allow_github_custom4
+  ALLOWED_IP_LIST = ('<custom-4-cidr-1>/28', '<custom-4-cidr-2>/28', '<custom-4-additional-ip>/32');
+
+ALTER USER svc_github_ci SET NETWORK_POLICY = allow_github_custom4;
+```
+
+The two `/28` blocks are the documented Custom-4 runner egress ranges (ask SRE
+for the exact CIDRs). The `/32` was identified from an initial failed run that
+used a different runner — confirmed with SRE as also belonging to the Custom-4
+pool.
+
+Scoping the policy to the service user (rather than `ALTER ACCOUNT`) means
+other Snowflake users are unaffected if the runner IPs ever need updating.
+
+### Blocker — Custom-4 runner group access (SRE action required)
+
+The workflow uses `runs-on: Custom-4`. GitHub self-hosted runner groups have
+per-repo allowlists; `snowflake-poc-dbt` was never added to the Custom-4
+group. As a result the job queues indefinitely — GitHub finds the label but no
+runner in the group picks it up.
+
+**Required:** SRE to add `roverdotcom/snowflake-poc-dbt` to the Custom-4 runner
+group's allowed repositories (GitHub org Settings → Actions → Runner groups →
+Custom-4 → Repository access).
+
+Once that is done the queued run should start immediately, or re-trigger via
+`workflow_dispatch`.
+
+### Why Custom-4 and not `ubuntu-latest`
+
+The aws-* GitHub-hosted runners (which egress from static IPs) are scoped to
+the `web` repo only. `ubuntu-latest` egresses from GitHub's published but very
+large and dynamic IP ranges — not practical to allowlist in Snowflake's network
+policy. Custom-4 is the only runner with stable, known egress IPs available to
+repos outside `web`.
