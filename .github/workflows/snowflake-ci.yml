@@ -20,7 +20,7 @@ on:
 
 jobs:
   dbt-smoke-test:
-    runs-on: ubuntu-latest
+    runs-on: Custom-4
     env:
       DBT_PROFILES_DIR: ${{ github.workspace }}
       # Sensitive / connection-specific — set as repo secrets.
