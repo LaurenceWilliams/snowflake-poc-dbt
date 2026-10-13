@@ -1,0 +1,39 @@
+version: 2
+
+# Fivetran Managed Data Lake (DEV-157656): Fivetran writes Iceberg to
+# s3://rover-prod-fivetran-s3-poc/iceberg/ and registers each table in Glue.
+# Both engines read the SAME files through the Glue catalog -- no copy:
+#   snowflake -> one Iceberg table per Glue table (metadata pointer)
+#   redshift  -> one Spectrum external schema per Glue database; every Glue
+#                table appears in it automatically
+#
+# Register with (per target):
+#   dbt run-operation setup_iceberg_sources --args '{source_name: ft_data_platform_uploads}' --profiles-dir . --target snowflake
+#   dbt run-operation setup_iceberg_sources --args '{source_name: ft_data_platform_uploads}' --profiles-dir . --target redshift
+#
+# Redshift needs the `redshift` target (prod-data-warehouse), not
+# redshift_serverless -- only the main cluster has the spectrum role attached.
+#
+# Source-level config.meta is inherited by every table; a table can override
+# any key. catalog_table_name defaults to the table name lowercased (Glue
+# stores lowercase identifiers).
+sources:
+  - name: ft_data_platform_uploads
+    database: "{{ target.database if target.type == 'redshift' else 'FIVETRAN_S3_GLUE_POC' }}"
+    schema: "{{ 'ft_data_platform_uploads' if target.type == 'redshift' else 'FT_DATA_PLATFORM_UPLOADS' }}"
+    config:
+      meta:
+        catalog_namespace: ft_data_platform_uploads
+        # snowflake
+        external_volume: ROVER_FIVETRAN_S3_POC_VOLUME
+        catalog: ROVER_FIVETRAN_S3_POC_GLUE
+        auto_refresh: true
+        # redshift
+        iam_role: arn:aws:iam::290268990387:role/rover-prod-fivetran-s3-poc-spectrum
+    tables:
+      - name: test
+        # Snowflake names its own table; Redshift sees the Glue name as-is.
+        identifier: "{{ 'test_test' if target.type == 'redshift' else 'TEST' }}"
+        config:
+          meta:
+            catalog_table_name: test_test

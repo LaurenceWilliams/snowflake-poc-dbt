@@ -82,3 +82,19 @@ snowflake_poc:
       schema: "{{ env_var('RS_SCHEMA', 'poc_bench') }}"
       threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
       sslmode: prefer
+
+    # Main provisioned cluster (prod-data-warehouse), same DB_* env vars as
+    # rover-dbt's single_schema target. Needed for the Fivetran Glue/Iceberg
+    # tables (DEV-157656): only this cluster has the fivetran-s3-poc-spectrum
+    # role attached; serverless's Spectrum role can't read that bucket.
+    # Locally: run `ssh -N redshift-tunnel` first.
+    redshift:
+      type: redshift
+      host: "{{ env_var('DB_HOST') }}"
+      port: "{{ env_var('DB_PORT', 5439) | as_number }}"
+      user: "{{ env_var('DB_USER') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
+      dbname: rover
+      schema: "{{ env_var('DBT_DEFAULT_SCHEMA', 'poc_bench') }}"
+      threads: "{{ env_var('DBT_THREADS', 1) | as_number }}"
+      sslmode: prefer
